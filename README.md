@@ -1,6 +1,6 @@
 # Binance Demo _(binance-demo)_
 
-![node](https://img.shields.io/node/v/18.10.0)
+![node](https://img.shields.io/node/v/16.17.1)
 [![license](https://img.shields.io/github/license/nubrid/binance-demo)](LICENSE)
 [![standard-readme compliant](https://img.shields.io/badge/readme%20style-standard-brightgreen.svg?style=flat-square)](https://github.com/RichardLitt/standard-readme)
 
