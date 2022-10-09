@@ -20,7 +20,7 @@ Demo providing liquidity to an exchange. Place open orders and adjust accordingl
 
 ## Security
 
-We'll use WebSockets to connect to `wss://stream.binance.com:9443/ws/btcusdt@kline_1m` for getting latest price, but use `wss://testnet.binance.vision/ws/` for placing/cancelling `bid` & `ask` open orders. Refer to the [Spot Testnet Page](https://testnet.binance.vision/) for information on how to generate the API Key.
+We'll use WebSockets to connect to `wss://stream.binancefuture.com/ws/btcusdt@kline_1m` for getting latest price, but use `https://testnet.binancefuture.com` for placing/cancelling `bid` & `ask` open orders. Refer to the [Futures Testnet Guide Page](https://www.binance.com/en/support/faq/ab78f9a1b8824cf0a106b4229c76496d) for information on how to generate the API Key.
 
 ## Background
 
@@ -28,26 +28,32 @@ We'll use WebSockets to connect to `wss://stream.binance.com:9443/ws/btcusdt@kli
 - Place a `bid` & `ask` open order with `$100` difference from latest price
 - Cancel order when `bid`/`ask` can be filled. Place a new set of order
 - Use either symbol `btcusdt` or `btcbusd`
-- Use `websockets` to subscribe to latest price
-- Use `rest api` to cancel orders
-- Use `testnet` to open orders
+- Use `websockets` via `testnet` to subscribe to latest price
+- Use `rest api` via `testnet` to open/cancel orders
 
 ## Install
 
 ```bash
-# TODO:
+git clone https://github.com/nubrid/binance-demo.git
+cd binance-demo
+node . -h
 ```
 
 ## Usage
 
+### CLI
+
 ```bash
-# TODO: npx binance-demo -- --args1 value1 --argsN
+# TODO: npx @nubrid/binance-demo -- --args1 value1 --argsN
+
+node .
+node . -s BTCBUSD -spread 200 --key XXXX --secret XXXX
 ```
 
 ## API
 
-- Get latest price - `wss://stream.binance.com:9443/ws/btcusdt@kline_1m`
-- Place/cancel `bid` & `ask` - `wss://testnet.binance.vision/ws/`
+- Get latest price - `wss://stream.binancefuture.com/ws/btcusdt@kline_1m`
+- Place/cancel `bid` & `ask` - `https://testnet.binancefuture.com`
 
 ## Contributing
 
