@@ -36,6 +36,7 @@ We'll use WebSockets to connect to `wss://stream.binancefuture.com/ws/btcusdt@kl
 ```bash
 git clone https://github.com/nubrid/binance-demo.git
 cd binance-demo
+pnpm i # npm install
 node . -h
 ```
 
