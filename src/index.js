@@ -10,16 +10,24 @@ dotenv.config()
 
 const _argv = yargs(hideBin(process.argv))
   .usage('Usage: node . [options]')
-  .example('node .')
-  .example('node . -s BTCBUSD')
+  .example([
+    ['node .', 'BTCUSDT Spot trading via Testnet'],
+    ['node . -s BTCBUSD -f', 'BTCBUSD Futures trading via Testnet'],
+    ['node . --api https://testnet.binance.vision --wss wss://stream.binance.com:9443', 'Get latest price from Production, but place bid/ask open order from Testnet']
+  ])
   .options({
-    apikey: {
-      alias: 'key',
-      describe: 'Binance Futures API Key'
+    key: {
+      alias: 'api-key',
+      describe: 'Binance Spot/Futures API Key'
     },
-    apisecret: {
-      alias: 'secret',
-      describe: 'Binance Futures Secret Key'
+    secret: {
+      alias: 'api-secret',
+      describe: 'Binance Spot/Futures Secret Key'
+    },
+    f: {
+      alias: 'trade-futures',
+      describe: 'Trade futures. default: "spot"',
+      nargs: 0
     },
     m: {
       alias: 'use-mainnet',
@@ -36,51 +44,88 @@ const _argv = yargs(hideBin(process.argv))
       describe: 'Price difference from last price',
       default: 100,
       nargs: 1
+    },
+    api: {
+      alias: 'url-api',
+      describe: 'Binance Spot/Futures REST API URL',
+      nargs: 1
+    },
+    wss: {
+      alias: 'url-wss',
+      describe: 'Binance Spot/Futures WebSocket URL',
+      nargs: 1
     }
   })
-  .boolean(['m'])
+  .boolean(['f', 'm'])
   .number(['spread'])
   .check(argv => {
-    if (isNaN(argv.spread) || argv.spread < 100) throw new Error('Spread must be greater than 100')
-    if (!argv.apikey && !process.env.FUTURES_API_KEY) throw new Error('Missing `--apikey` argument or specify `FUTURES_API_KEY` in a `.env` file.')
-    if (!argv.apisecret && !process.env.FUTURES_API_SECRET) throw new Error('Missing `--apisecret` argument or specify `FUTURES_API_SECRET` in a `.env` file.')
+    if (isNaN(argv.spread) || argv.spread < 1) { throw new Error('Spread must be greater than 1') }
+    if (argv.f && !argv.key && !process.env.FUTURES_API_KEY) { throw new Error('Missing `--apikey` argument or specify `FUTURES_API_KEY` in a `.env` file.') }
+    if (argv.f && !argv.secret && !process.env.FUTURES_API_SECRET) { throw new Error('Missing `--apisecret` argument or specify `FUTURES_API_SECRET` in a `.env` file.') }
+    if (!argv.f && !argv.key && !process.env.SPOT_API_KEY) { throw new Error('Missing `--apikey` argument or specify `SPOT_API_KEY` in a `.env` file.') }
+    if (!argv.f && !argv.secret && !process.env.SPOT_API_SECRET) { throw new Error('Missing `--apisecret` argument or specify `SPOT_API_SECRET` in a `.env` file.') }
 
     return true
   })
+  .conflicts('m', ['url-api', 'url-wss'])
   .help('h')
   .alias('h', 'help')
   .epilog('Copyright 2022')
   .argv
 
+const isMainnet = _argv.m
+const isFuturesTrading = _argv.f
+
 const ENDPOINT_BATCH_ORDERS = '/fapi/v1/batchOrders'
-const FUTURES_API_KEY = _argv.apikey || process.env.FUTURES_API_KEY
-const FUTURES_SECRET_KEY = _argv.apisecret || process.env.FUTURES_API_SECRET
+const ENDPOINT_ORDERS = '/api/v3/order'
+const API_KEY = _argv.key ||
+  isFuturesTrading
+  ? process.env.FUTURES_API_KEY
+  : process.env.SPOT_API_KEY
+const API_SECRET = _argv.secret ||
+  isFuturesTrading
+  ? process.env.FUTURES_API_SECRET
+  : process.env.SPOT_API_SECRET
 const SPREAD = _argv.spread
 const SYMBOL = _argv.s
-const URL_API = _argv.m ? 'https://fapi.binance.com' : 'https://testnet.binancefuture.com'
-const URL_WEBSOCKETS = _argv.m ? 'wss://fstream.binance.com' : 'wss://stream.binancefuture.com'
+const URL_API = isMainnet
+  ? isFuturesTrading
+    ? 'https://fapi.binance.com'
+    : 'https://api.binance.com'
+  : isFuturesTrading
+    ? 'https://testnet.binancefuture.com'
+    : 'https://testnet.binance.vision'
+const URL_WEBSOCKET = isMainnet
+  ? isFuturesTrading
+    ? 'wss://fstream.binance.com'
+    : 'wss://stream.binance.com:9443'
+  : isFuturesTrading
+    ? 'wss://stream.binancefuture.com'
+    : 'wss://testnet.binance.vision'
+
+console.log(`%s %s trading
+Getting latest price from %s
+Place bid/ask open order from %s`, SYMBOL, isFuturesTrading ? 'Futures' : 'Spot', URL_WEBSOCKET, URL_API)
 
 // NOTE: https://developers.binance.com/docs/binance-trading-api/futures#signed-trade-and-user_data-endpoint-security
 function generateHmacSha256Signature (combinedQueryStringRequestBodyParams, secretKey) {
   return crypto.createHmac('sha256', secretKey).update(combinedQueryStringRequestBodyParams).digest('hex')
 }
 
-async function runBinanceApiFuturesRequest (method, endpoint, params) {
+async function runBinanceApiRequest (method, endpoint, params) {
   const paramsQueryString = qs.stringify(params)
-  const signature = generateHmacSha256Signature(paramsQueryString, FUTURES_SECRET_KEY)
+  const signature = generateHmacSha256Signature(paramsQueryString, API_SECRET)
   const axiosRequestConfig = {
     method,
     url: `${URL_API}${endpoint}?${paramsQueryString}&signature=${signature}`,
     headers: {
-      'X-MBX-APIKEY': FUTURES_API_KEY
+      'X-MBX-APIKEY': API_KEY
       // NOTE: https://developers.binance.com/docs/binance-trading-api/futures#general-information-on-endpoints
       // ...method !== 'GET' && { 'Content-Type': 'application/x-www-form-urlencoded' }
     }
   }
 
   try {
-    // NOTE: For debugging
-    // console.log('Binance API URL: ', axiosRequestConfig.url)
     const response = await axios(axiosRequestConfig)
     return response.data
   } catch (err) {
@@ -99,27 +144,57 @@ function generateOpenOrderParams (symbol, side, price, encloseNumeric) {
   }
 }
 
-function openBatchOrders (symbol, currentMarketPrice, spread) {
-  return runBinanceApiFuturesRequest('POST', ENDPOINT_BATCH_ORDERS, {
-    batchOrders: JSON.stringify([
-      generateOpenOrderParams(symbol, 'BUY', currentMarketPrice - spread, true),
-      generateOpenOrderParams(symbol, 'SELL', currentMarketPrice + spread, true)
-    ]),
-    recvWindow: 5000,
-    timestamp: Date.now()
-  })
+async function openBatchOrders (symbol, currentMarketPrice, spread) {
+  return isFuturesTrading
+    ? runBinanceApiRequest('POST', ENDPOINT_BATCH_ORDERS, {
+      batchOrders: JSON.stringify([
+        generateOpenOrderParams(symbol, 'BUY', currentMarketPrice - spread, true),
+        generateOpenOrderParams(symbol, 'SELL', currentMarketPrice + spread, true)
+      ]),
+      recvWindow: 5000,
+      timestamp: Date.now()
+    })
+    // NOTE: Since there's no batch order API in Spot trading, open bid/ask orders separately
+    : [
+        await runBinanceApiRequest('POST', ENDPOINT_ORDERS, {
+          ...generateOpenOrderParams(symbol, 'BUY', currentMarketPrice - spread, true),
+          recvWindow: 5000,
+          timestamp: Date.now()
+        }),
+        await runBinanceApiRequest('POST', ENDPOINT_ORDERS, {
+          ...generateOpenOrderParams(symbol, 'SELL', currentMarketPrice + spread, true),
+          recvWindow: 5000,
+          timestamp: Date.now()
+        })
+      ]
 }
 
-function closeBatchOrders (symbol, batchOrders) {
-  return runBinanceApiFuturesRequest('DELETE', ENDPOINT_BATCH_ORDERS, {
-    symbol,
-    origClientOrderIdList: JSON.stringify(batchOrders.map(order => order.clientOrderId)),
-    recvWindow: 5000,
-    timestamp: Date.now()
-  })
+async function closeBatchOrders (symbol, batchOrders) {
+  return isFuturesTrading
+    ? runBinanceApiRequest('DELETE', ENDPOINT_BATCH_ORDERS, {
+      symbol,
+      origClientOrderIdList: JSON.stringify(batchOrders.map(order => order.clientOrderId)),
+      recvWindow: 5000,
+      timestamp: Date.now()
+    })
+    // NOTE: Since there's no batch order API in Spot trading, close bid/ask orders separately
+    : [
+        await runBinanceApiRequest('DELETE', ENDPOINT_ORDERS, {
+          symbol,
+          origClientOrderId: batchOrders[0].clientOrderId,
+          recvWindow: 5000,
+          timestamp: Date.now()
+        }),
+        await runBinanceApiRequest('DELETE', ENDPOINT_ORDERS, {
+          symbol,
+          origClientOrderId: batchOrders[1].clientOrderId,
+          recvWindow: 5000,
+          timestamp: Date.now()
+        })
+      ]
 }
 
-const ws = new WebSocket(`${URL_WEBSOCKETS}/ws/${SYMBOL.toLowerCase()}@kline_1m`)
+const ws = new WebSocket(`${URL_WEBSOCKET}/ws/${SYMBOL.toLowerCase()}@kline_1m`)
 
 let lastPrice, lastStatus, openedBatchOrders, isProcessingBatchOrders
 
@@ -141,15 +216,17 @@ ws.on('message', async function message (data) {
     else if (isAskOrderFilled) lastStatus = 'Ask order can be filled, cancelling & creating new bid/ask order'
 
     if (openedBatchOrders) {
+      // TODO: Revisit. Sometimes, both bid & ask aren't filled so we have to close both
+      await closeBatchOrders(SYMBOL, openedBatchOrders)
       // NOTE: To prevent `Unknown order sent` error, close order if not filled
-      await closeBatchOrders(SYMBOL, openedBatchOrders.filter(batchOrder => {
-        const isBidBatchOrder = batchOrder.side === 'BUY'
-        const isAskBatchOrder = batchOrder.side === 'SELL'
-        const isOpenedBidOrderFilled = isBidOrderFilled && isBidBatchOrder
-        const isOpenedAskOrderFilled = isAskOrderFilled && isAskBatchOrder
+      // await closeBatchOrders(SYMBOL, openedBatchOrders.filter(batchOrder => {
+      //   const isBidBatchOrder = batchOrder.side === 'BUY'
+      //   const isAskBatchOrder = batchOrder.side === 'SELL'
+      //   const isOpenedBidOrderFilled = isBidOrderFilled && isBidBatchOrder
+      //   const isOpenedAskOrderFilled = isAskOrderFilled && isAskBatchOrder
 
-        return !isOpenedBidOrderFilled && !isOpenedAskOrderFilled
-      }))
+      //   return !isOpenedBidOrderFilled && !isOpenedAskOrderFilled
+      // }))
     }
 
     openedBatchOrders = await openBatchOrders(SYMBOL, lastPrice, SPREAD)

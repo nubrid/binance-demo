@@ -1,6 +1,6 @@
 # Binance Demo _(binance-demo)_
 
-![node](https://img.shields.io/node/v/16.17.1)
+[![node](https://img.shields.io/node/v/pnpm)](https://nodejs.org/en/)
 [![license](https://img.shields.io/github/license/nubrid/binance-demo)](LICENSE)
 [![standard-readme compliant](https://img.shields.io/badge/readme%20style-standard-brightgreen.svg?style=flat-square)](https://github.com/RichardLitt/standard-readme)
 
@@ -20,7 +20,7 @@ Demo providing liquidity to an exchange. Place open orders and adjust accordingl
 
 ## Security
 
-We'll use WebSockets to connect to `wss://stream.binancefuture.com/ws/btcusdt@kline_1m` for getting latest price, but use `https://testnet.binancefuture.com` for placing/cancelling `bid` & `ask` open orders. Refer to the [Futures Testnet Guide Page](https://www.binance.com/en/support/faq/ab78f9a1b8824cf0a106b4229c76496d) for information on how to generate the API Key.
+We'll use WebSocket to connect to `wss://testnet.binance.vision/ws/btcusdt@kline_1m` for getting latest price, but use `https://testnet.binance.vision` for placing/cancelling `bid` & `ask` open orders. Refer to the [Spot Testnet Guide Page](https://testnet.binance.vision) or [Futures Testnet Guide Page](https://www.binance.com/en/support/faq/ab78f9a1b8824cf0a106b4229c76496d) for information on how to generate the API Key.
 
 ## Background
 
@@ -28,7 +28,7 @@ We'll use WebSockets to connect to `wss://stream.binancefuture.com/ws/btcusdt@kl
 - Place a `bid` & `ask` open order with `$100` difference from latest price
 - Cancel order when `bid`/`ask` can be filled. Place a new set of order
 - Use either symbol `btcusdt` or `btcbusd`
-- Use `websockets` via `testnet` to subscribe to latest price
+- Use `websocket` via `testnet` to subscribe to latest price
 - Use `rest api` via `testnet` to open/cancel orders
 
 ## Install
@@ -47,14 +47,14 @@ node . -h
 ```bash
 # TODO: npx @nubrid/binance-demo -- --args1 value1 --argsN
 
-node .
-node . -s BTCBUSD -spread 200 --key XXXX --secret XXXX
+node . -h
+node . -s BTCBUSD -spread 200 --key XXXX --secret XXXX # BTCBUSD Spot trading via Testnet
 ```
 
 ## API
 
-- Get latest price - `wss://stream.binancefuture.com/ws/btcusdt@kline_1m`
-- Place/cancel `bid` & `ask` - `https://testnet.binancefuture.com`
+- Get latest price - `wss://testnet.binance.vision/ws/btcusdt@kline_1m`
+- Place/cancel `bid` & `ask` - `https://testnet.binance.vision`
 
 ## Contributing
 
