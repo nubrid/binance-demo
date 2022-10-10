@@ -121,7 +121,7 @@ function closeBatchOrders (symbol, batchOrders) {
 
 const ws = new WebSocket(`${URL_WEBSOCKETS}/ws/${SYMBOL.toLowerCase()}@kline_1m`)
 
-let lastPrice, lastStatus, openedBatchOrders
+let lastPrice, lastStatus, openedBatchOrders, isProcessingBatchOrders
 
 ws.on('message', async function message (data) {
   // { o: openPrice, c: closePrice, h: highPrice, l: lowPrice }
@@ -131,17 +131,30 @@ ws.on('message', async function message (data) {
 
   lastStatus = '--'
 
-  if (!openedBatchOrders || isBidOrderFilled || isAskOrderFilled) {
+  if (!isProcessingBatchOrders && (!openedBatchOrders || isBidOrderFilled || isAskOrderFilled)) {
+    // NOTE: Prevent concurrent batch orders given that each WebSocket event can run concurrently
+    isProcessingBatchOrders = true
+
     lastPrice = ~~closePrice
 
     if (isBidOrderFilled) lastStatus = 'Bid order can be filled, cancelling & creating new bid/ask order'
     else if (isAskOrderFilled) lastStatus = 'Ask order can be filled, cancelling & creating new bid/ask order'
 
     if (openedBatchOrders) {
-      await closeBatchOrders(SYMBOL, openedBatchOrders)
+      // NOTE: To prevent `Unknown order sent` error, close order if not filled
+      await closeBatchOrders(SYMBOL, openedBatchOrders.filter(batchOrder => {
+        const isBidBatchOrder = batchOrder.side === 'BUY'
+        const isAskBatchOrder = batchOrder.side === 'SELL'
+        const isOpenedBidOrderFilled = isBidOrderFilled && isBidBatchOrder
+        const isOpenedAskOrderFilled = isAskOrderFilled && isAskBatchOrder
+
+        return !isOpenedBidOrderFilled && !isOpenedAskOrderFilled
+      }))
     }
 
     openedBatchOrders = await openBatchOrders(SYMBOL, lastPrice, SPREAD)
+
+    isProcessingBatchOrders = false
   }
 
   const bidOrderPrice = +lastPrice - SPREAD
