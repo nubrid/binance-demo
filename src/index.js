@@ -113,9 +113,9 @@ const URL_WEBSOCKET = _argv.wss ||
         : 'wss://testnet.binance.vision' // websocket testnet spot
   )
 
-console.log(`%s %s trading
-Getting latest price from %s
-Place bid/ask open order from %s`, SYMBOL, isFuturesTrading ? 'Futures' : 'Spot', URL_WEBSOCKET, URL_API)
+console.log(`${SYMBOL} ${isFuturesTrading ? 'Futures' : 'Spot'} trading
+Getting latest price from ${URL_WEBSOCKET}
+Place bid/ask open order from ${URL_API}`)
 
 // NOTE: https://developers.binance.com/docs/binance-trading-api/futures#signed-trade-and-user_data-endpoint-security
 function generateHmacSha256Signature (combinedQueryStringRequestBodyParams, secretKey) {
