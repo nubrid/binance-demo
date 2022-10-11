@@ -1,4 +1,4 @@
 #!/usr/bin/env sh
 . "$(dirname -- "$0")/_/husky.sh"
 
-pnpm standard --fix && pnpm jest --passWithNoTests
+pnpm standard --fix && pnpm jest --passWithNoTests && git add -u

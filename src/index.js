@@ -81,14 +81,14 @@ const ENDPOINT_ORDERS = '/api/v3/order'
 const API_KEY = _argv.key ||
   (
     isFuturesTrading
-    ? process.env.FUTURES_API_KEY
-    : process.env.SPOT_API_KEY
+      ? process.env.FUTURES_API_KEY
+      : process.env.SPOT_API_KEY
   )
 const API_SECRET = _argv.secret ||
   (
     isFuturesTrading
-    ? process.env.FUTURES_API_SECRET
-    : process.env.SPOT_API_SECRET
+      ? process.env.FUTURES_API_SECRET
+      : process.env.SPOT_API_SECRET
   )
 const SPREAD = _argv.spread
 const SYMBOL = _argv.s
