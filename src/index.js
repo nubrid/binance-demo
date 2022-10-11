@@ -249,9 +249,9 @@ ws.on('message', async function message (data) {
 
   // TODO: Revisit console.clear()
   console.log(`
-  Last status: %s
-  Last price: %s
-  Bid: %s
-  Ask: %s
-  Close price: %s`, lastStatus, lastPrice, bidOrderPrice, askOrderPrice, closePrice)
+  Last status: ${lastStatus}
+  Last price: ${lastPrice}
+  Bid: ${bidOrderPrice}
+  Ask: ${askOrderPrice}
+  Close price: ${closePrice}`)
 })
