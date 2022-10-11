@@ -88,20 +88,26 @@ const API_SECRET = _argv.secret ||
   : process.env.SPOT_API_SECRET
 const SPREAD = _argv.spread
 const SYMBOL = _argv.s
-const URL_API = isMainnet
-  ? isFuturesTrading
-    ? 'https://fapi.binance.com'
-    : 'https://api.binance.com'
-  : isFuturesTrading
-    ? 'https://testnet.binancefuture.com'
-    : 'https://testnet.binance.vision'
-const URL_WEBSOCKET = isMainnet
-  ? isFuturesTrading
-    ? 'wss://fstream.binance.com'
-    : 'wss://stream.binance.com:9443'
-  : isFuturesTrading
-    ? 'wss://stream.binancefuture.com'
-    : 'wss://testnet.binance.vision'
+const URL_API = _argv.api ||
+  (
+    isMainnet
+      ? isFuturesTrading
+        ? 'https://fapi.binance.com' // rest api mainnet futures
+        : 'https://api.binance.com' // rest api mainnet spot
+      : isFuturesTrading
+        ? 'https://testnet.binancefuture.com' // rest api testnet futures
+        : 'https://testnet.binance.vision' // rest api testnet spot
+  )
+const URL_WEBSOCKET = _argv.wss ||
+  (
+    isMainnet
+      ? isFuturesTrading
+        ? 'wss://fstream.binance.com' // websocket mainnet futures
+        : 'wss://stream.binance.com:9443' // websocket mainnet spot
+      : isFuturesTrading
+        ? 'wss://stream.binancefuture.com' // websocket testnet futures
+        : 'wss://testnet.binance.vision' // websocket testnet spot
+  )
 
 console.log(`%s %s trading
 Getting latest price from %s
